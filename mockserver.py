@@ -1,8 +1,8 @@
 #!/usr/bin/evn python
 # -*- coding:utf-8 -*-
 # @author: zhangzhao_lenovo@126.com
-# @date: 20161027
-# @version: 1.0.0.1026
+# @date: 20161028
+# @version: 1.0.0.1028
 
 import selectors
 import socket
@@ -27,7 +27,6 @@ class server:
         self.json=1
         self.api=[]
         self.key = []
-        #self.value={'re:NAMES':'xx','re:name':'H1 \u266a@\u5c0f\u8776\u6c42\u5b88\u62a4','errno':'1','data.uid':'fun:del','regex:^is_.*':'999'}
         self.value = {}
 
     def mock(self, type, data):
@@ -45,14 +44,10 @@ class server:
                 json[k]=v
 
             def setintmultin(json, k,v):
-                if isinstance(v, int):
-                    n = random.randint(2, 199)
-                    json[k]=str(Decimal(v) * Decimal(n))
+                if isinstance(v, int): json[k]=str(Decimal(v) * Decimal(random.randint(2, 199)))
 
             def setintdivn(json, k,v):
-                if isinstance(v, int):
-                    n = random.random()
-                    json[k]=str(Decimal(v) * Decimal(n))
+                if isinstance(v, int): json[k]=str(Decimal(v) * Decimal(random.random()))
 
             def setstrextend(json, k,v):
                 v1=''
@@ -61,10 +56,7 @@ class server:
 
             def setstrshorten(json, k,v):
                 v=str(v)
-                v1=''
-                n = random.randint(1, len(v)-1)
-                v1 = (len(v) <= 3) and v or v[0:len(v) - n]
-                json[k] = v1
+                json[k] = (len(v) <= 3) and v or v[0:len(v) - random.randint(1, len(v)-1)]
 
             def setstroverlen(json, k,v):
                 v=str(v)
@@ -97,35 +89,38 @@ class server:
             return list[type]()
 
         def dofun(json,k,v,kv):
-            if ':' in v:
-                flag, func = v.split(':', 1)
-                if flag in ['fun', 'func', 'funcation']:
-                    funclist(func,json,k,v,kv)
+            if re.search('^fun:', v):
+                _, func = v.split(':', 1)
+                funclist(func,json,k,v,kv)
             else:
                 json[k] = v
             return json
 
-        def regexpsearch(json,regexp,value):
+        def regexpsearch(json, str, v):
             ret = json
             data = ret
             if isinstance(json, dict):
                 for k in list(json):
-                    v=json[k]
-                    if re.search(regexp, k):
-                        dofun(ret, k, value, ret[k])
-                    regexpsearch(v, regexp, value)
+                    if re.search(str, k):
+                        dofun(ret, k, v, ret[k])
+                        continue
+                    regexpsearch(ret[k], str, v)
+            if isinstance(json, list): [regexpsearch(j, str, v) for j in json]
             return data
 
-        def exactsearch(json, l_key ,value):
+        def exactsearch(json, l_key ,v):
+            def find(k, ret, v):
+                if isinstance(ret, list):
+                    for l in ret: find(k, l, v)
+                if k not in ret: return 0
+                if not (isinstance(ret[k], dict)) and not (isinstance(ret[k], list)):
+                    dofun(ret, k, v, ret[k])
+                    return 0
+                return 1
             ret = json
             data = ret
             for k in l_key:
-                if isinstance(k, str):
-                    if k not in ret: return json
-                    if not (isinstance(ret[k], dict)):
-                        dofun(ret, k, value,ret[k])
-                        return data
-                else:return json
+                if not find(k, ret, v): break
                 ret = ret[k]
             return data
 
@@ -159,7 +154,6 @@ class server:
                     l_key= k.split('.')
                     data = exactsearch(data,l_key,v)
             return data
-
 
         mockfun = {'sleep': lambda: sleep(data),
                    'delay': lambda: delay(data),
@@ -233,19 +227,19 @@ class server:
         mock = {}
         data['mock'] = mock
         if api in self.api or not self.api:
-            print(api)
-            print(' msg body : ')
-            print(data)
+            #print(api)
+            #print(' msg body : ')
             try:
                 data = self.mock('', data)
+                print(' mock : '+api)
             except Exception as e:
                 print(e)
         if self.json == 1:
             if 'responsecode' not in data['mock']: data['mock']['responsecode'] = '200'
             if 'delay' not in data['mock']: data['mock']['delay'] = 0
             data = json.dumps(data)
-        print(' mock : ')
-        print(data)
+        # print(' mock : ')
+        # print(data)
         self.json = 1
         return data
 

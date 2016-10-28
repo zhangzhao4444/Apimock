@@ -106,10 +106,10 @@ class Handlers
 						oSession["ui-color"] = "";
 						oSession["ui-backcolor"] = "yellow";
 					}
-                    MessageBox.Show(System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes))
+                    //MessageBox.Show(System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes))
 					//MessageBox.Show(oSession["response-trickle-delay"])
 				}
-				catch(e){MessageBox.Show(e)}
+				catch(e){//MessageBox.Show(e)}
 			}
 		}
 	}
