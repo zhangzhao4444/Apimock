@@ -68,51 +68,60 @@ class Handlers
     }
 
 	static function OnBeforeResponse(oSession: Session) {
-		if (m_Hide304s && oSession.responseCode == 304) { oSession["ui-hide"] = "true";}
-		if (isautocap && oSession.HostnameIs(filterUrl) && oSession.responseCode == 200) {
-		    oSession.utilDecodeResponse()
-		    var rawbody = System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes);
-            var j=Fiddler.WebFormats.JSON.JsonDecode(rawbody)
-			if(typeof(j.JSONObject) == "object" && Object.prototype.toString.call(j.JSONObject).toLowerCase() == "[object hashtable]" && !j.JSONObject.length) {
-				try {
-					var api = oSession.PathAndQuery.split('?')[0]
-					rawbody = api + ':' + rawbody
-					var mockbody = mock('127.0.0.1', 8390, rawbody)
-					j=Fiddler.WebFormats.JSON.JsonDecode(mockbody)
-					if(typeof(j.JSONObject) == "object" && Object.prototype.toString.call(j.JSONObject).toLowerCase() == "[object hashtable]" && !j.JSONObject.length) {
-						if (j.JSONObject['mock']['delay'] == '2g') {
-							oSession["response-trickle-delay"] = "833"
-						}
-						else {
-							oSession["response-trickle-delay"] = j.JSONObject['mock']['delay']
-						}
-
-						if (j.JSONObject['mock']['responsecode'] == '200') {
-							delete j.JSONObject['mock']
-							var mockbytes = Fiddler.WebFormats.JSON.JsonEncode(j.JSONObject)
-							//mockbody = System.Text.Encoding.UTF8.GetBytes(mockbytes)
-							//oSession.RequestBody = mockbody;
-							oSession.utilSetResponseBody(mockbytes)
-							oSession["ui-color"] = "blue";
-							oSession["ui-backcolor"] = "yellow";
-						} else {
-							oSession.responseCode = int(j.JSONObject['mock']['responsecode'])
-							oSession["ui-color"] = "red";
-							oSession["ui-backcolor"] = "yellow";
-						}
+	if (m_Hide304s && oSession.responseCode == 304) {
+		oSession["ui-hide"] = "true";
+	}
+	if (isautocap && oSession.HostnameIs(filterUrl) && oSession.responseCode == 200) {
+		oSession.utilDecodeResponse()
+		var body = System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes)
+		var jquery = body.match(/(?i)jQuery(.*)/g);
+		if (jquery) {
+			var rawbody = body.match(/(\{.*\})/g);
+		}else{
+			var rawbody = body
+		}
+		var j = Fiddler.WebFormats.JSON.JsonDecode(rawbody)
+		if (typeof(j.JSONObject) == "object" && Object.prototype.toString.call(j.JSONObject).toLowerCase() == "[object hashtable]" && !j.JSONObject.length) {
+			try {
+				var api = oSession.PathAndQuery.split('?')[0]
+				rawbody = api + ':' + rawbody
+				var mockbody = mock('127.0.0.1', 8390, rawbody)
+				j = Fiddler.WebFormats.JSON.JsonDecode(mockbody)
+				if (typeof(j.JSONObject) == "object" && Object.prototype.toString.call(j.JSONObject).toLowerCase() == "[object hashtable]" && !j.JSONObject.length) {
+					if (j.JSONObject['mock']['delay'] == '2g') {
+						oSession["response-trickle-delay"] = "833"
 					}
-					else{
-						oSession.utilSetResponseBody(mockbody)
-						oSession["ui-color"] = "";
+					else {
+						oSession["response-trickle-delay"] = j.JSONObject['mock']['delay']
+					}
+
+					if (j.JSONObject['mock']['responsecode'] == '200') {
+						delete j.JSONObject['mock']
+						var mockbytes = Fiddler.WebFormats.JSON.JsonEncode(j.JSONObject)
+						//mockbody = System.Text.Encoding.UTF8.GetBytes(mockbytes)
+						//oSession.RequestBody = mockbody;
+						oSession.utilSetResponseBody(mockbytes)
+						oSession["ui-color"] = "blue";
+						oSession["ui-backcolor"] = "yellow";
+					} else {
+						oSession.responseCode = int(j.JSONObject['mock']['responsecode'])
+						oSession["ui-color"] = "red";
 						oSession["ui-backcolor"] = "yellow";
 					}
-                    //MessageBox.Show(System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes))
-					//MessageBox.Show(oSession["response-trickle-delay"])
 				}
-				catch(e){//MessageBox.Show(e)}
+				else {
+					oSession.utilSetResponseBody(mockbody)
+					oSession["ui-color"] = "";
+					oSession["ui-backcolor"] = "yellow";
+				}
+				//MessageBox.Show(System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes))
+				//MessageBox.Show(oSession["response-trickle-delay"])
+			}
+			catch (e) {//MessageBox.Show(e)}
 			}
 		}
 	}
+}
 
 	// *****************
 	//
