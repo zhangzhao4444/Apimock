@@ -5,7 +5,7 @@ Api接口 mock server返回，用于app api容错测试
 
 该mock指 mock，api服务器端返回的response
 
-app通过代理wifi访问pc，pc开fiddler抓包，经二次开发fiddler，将指定数据包劫持发给 mockserver ，mockserver会根据其内部定义的规则篡改数据包并返回给fiddler，完成一次mock
+app通过代理wifi访问pc，pc开fiddler(或anyproxy)抓包，经二次开发fiddler(anyproxy)，将指定数据包劫持发给 mockserver ，mockserver会根据其内部定义的规则篡改数据包并返回给fiddler(anyproxy)，完成一次mock
 
 启动mockserver后 通过proxy.py来注入篡改规则 ,完成注入后 app再次访问api来进行Mock测试
 
@@ -13,7 +13,9 @@ app通过代理wifi访问pc，pc开fiddler抓包，经二次开发fiddler，将�
 
 1.将fiddlerjs/fiddler.js 内容复制替换到 fiddler->Rules->Customize Rules中
 
-  并修改filterUrl="www.3663.com"  来劫持指定域名的数据包
+  （或anyproxy -i --rule anyproxyjs.js --intercept   启动anyproxy 定制使用anyproxyjs.js 启用https劫持)
+
+  并修改filterUrl="www.3663.com"  来劫持指定域名的数据包 （anyproxy 修改anyproxyjs.js中host）
   
 2.启动mockserver.py
 
@@ -28,6 +30,8 @@ app通过代理wifi访问pc，pc开fiddler抓包，经二次开发fiddler，将�
   -d 2g   模拟2g网络
   
   -d 100  延迟100毫秒，模拟网络延迟
+  
+  -c 404  返回404
 
   -b xx   篡改整个body，可以是非json
   
@@ -53,7 +57,7 @@ app通过代理wifi访问pc，pc开fiddler抓包，经二次开发fiddler，将�
             
             fun:illega 非法字符
            
-            
+  （anyproxy 暂不支持-c -d -s）
   
 例子：
   
