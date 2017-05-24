@@ -52,7 +52,7 @@ module.exports = {
                                     delete j['mock'];
                                 }else{
                                     flag = 1;
-                                    code = int(j['mock']['responsecode']);
+                                    code = parseInt(j['mock']['responsecode']);
                                 }
                                 rawbody = JSON.stringify(j);
                             }

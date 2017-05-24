@@ -1,0 +1,13 @@
+pairwisetest : False
+combination : False  #maybe process time toolong
+specialapi :
+- "/index.php?method"
+#- "/index.php?method,__version,__channel"
+whitelist:
+- "/index.php?method=clientconf.firstscreen&__version=3.0.6.3203&__plat=android&__channel=guanwang"
+#- "/index.php?method=clientconf.firstscreen"
+#- "/index.php?"
+#blacklist:
+#- "/index.php?method=clientconf.firstscreen&__version=3.0.6.3203&__plat=android&__channel=guanwang"
+getobjfromnet : False
+batch: 100

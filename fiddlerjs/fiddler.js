@@ -38,90 +38,109 @@ import System.Net.Sockets;
 class Handlers
 {
 	public static var isautocap=1;
-	public static var filterUrl="www.3663.com";
+	public static var filterUrl="panda.tv";
+	public static var whiteurl="/weekly";
 
-    static function connect(server: String,port: int):Socket{
-        var hostEntry =Dns.GetHostEntry(server);
-        for (var iCtr = 0; iCtr < Dns.GetHostAddresses(server).length;iCtr++) {
-            var address = Dns.GetHostAddresses(server)[iCtr];
-            var ipe = new IPEndPoint(address, port);
-            var tempSocket = new Socket(ipe.AddressFamily,SocketType.Stream, ProtocolType.Tcp);
-            tempSocket.Connect(ipe);
-            if (tempSocket.Connected) {return tempSocket;}
-            else {
-                continue;}}}
+	static function connect(server: String,port: int):Socket{
+		var hostEntry =Dns.GetHostEntry(server);
+		for (var iCtr = 0; iCtr < Dns.GetHostAddresses(server).length;iCtr++) {
+			var address = Dns.GetHostAddresses(server)[iCtr];
+			var ipe = new IPEndPoint(address, port);
+			var tempSocket = new Socket(ipe.AddressFamily,SocketType.Stream, ProtocolType.Tcp);
+			tempSocket.Connect(ipe);
+			if (tempSocket.Connected) {return tempSocket;}
+			else {
+			continue;}}}
 
-    static function mock(server: String,port: int ,msg: String):String{
-        var request = msg;
-        var bytesSent = Encoding.ASCII.GetBytes(request);
-        var bytesReceived = new System.Byte[256];
-        var s = connect(server, port);
-        s.Send(bytesSent, bytesSent.length,0);
-        var bytes = 0;
-        var body = "";
-        do {
-            bytes = s.Receive(bytesReceived,bytesReceived.length, 0);
-            body = body + System.Text.Encoding.UTF8.GetString(bytesReceived, 0, bytes);
-        } while (bytes > 0);
-	    s.Disconnect(true)
-        return body;
-    }
+	static function mock(server: String,port: int ,msg: String):String{
+		var request = msg;
+		var bytesSent = Encoding.ASCII.GetBytes(request);
+		var bytesReceived = new System.Byte[256];
+		var s = connect(server, port);
+		s.Send(bytesSent, bytesSent.length,0);
+		var bytes = 0;
+		var body = "";
+		do {
+			bytes = s.Receive(bytesReceived,bytesReceived.length, 0);
+			body = body + System.Text.Encoding.UTF8.GetString(bytesReceived, 0, bytes);
+		} while (bytes > 0);
+		s.Disconnect(true)
+		return body;
+	}
 
 	static function OnBeforeResponse(oSession: Session) {
-	if (m_Hide304s && oSession.responseCode == 304) {
-		oSession["ui-hide"] = "true";
-	}
-	if (isautocap && oSession.HostnameIs(filterUrl) && oSession.responseCode == 200) {
-		oSession.utilDecodeResponse()
-		var body = System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes)
-		var jquery = body.match(/(?i)jQuery(.*)/g);
-		if (jquery) {
-			var rawbody = body.match(/(\{.*\})/g);
-		}else{
-			var rawbody = body
+		if (m_Hide304s && oSession.responseCode == 304) {
+			oSession["ui-hide"] = "true";
 		}
-		var j = Fiddler.WebFormats.JSON.JsonDecode(rawbody)
-		if (typeof(j.JSONObject) == "object" && Object.prototype.toString.call(j.JSONObject).toLowerCase() == "[object hashtable]" && !j.JSONObject.length) {
-			try {
-				var api = oSession.PathAndQuery.split('?')[0]
-				rawbody = api + ':' + rawbody
-				var mockbody = mock('127.0.0.1', 8390, rawbody)
-				j = Fiddler.WebFormats.JSON.JsonDecode(mockbody)
-				if (typeof(j.JSONObject) == "object" && Object.prototype.toString.call(j.JSONObject).toLowerCase() == "[object hashtable]" && !j.JSONObject.length) {
-					if (j.JSONObject['mock']['delay'] == '2g') {
-						oSession["response-trickle-delay"] = "833"
+		var hostmatch = oSession.hostname.match(filterUrl)
+		if (isautocap && hostmatch && oSession.responseCode == 200) {
+			oSession.utilDecodeResponse()
+			var body = System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes)
+			var jquery = body.match(/(?i)jQuery(.*)/g);
+			if (jquery) {
+				var rawbody = body.match(/(\{.*\})/g);
+			}else{
+				var rawbody = body
+			}
+			try{
+				rawbody = rawbody.replace(/([\u4E00-\u9FA5]|[\uFE30-\uFFA0])/g,function(newStr){
+				    return "\\u" + newStr.charCodeAt(0).toString(16);
+			    });
+			}catch (e) {}
+			//MessageBox.Show(rawbody)
+		    var	api = oSession.PathAndQuery.split('?')[0]
+			var j = Fiddler.WebFormats.JSON.JsonDecode(rawbody)
+			if ( api == whiteurl || typeof(j.JSONObject) == "object" && Object.prototype.toString.call(j.JSONObject).toLowerCase() == "[object hashtable]" && !j.JSONObject.length) {
+				try {
+
+					//var api = oSession.PathAndQuery.split('?')[0]
+					//var param = oSession.PathAndQuery.split('?')[1]
+					//rawbody = api + ':'+ param + rawbody
+					rawbody = oSession.PathAndQuery +':'+ rawbody
+					var mockbody = mock('127.0.0.1', 8390, rawbody)
+					j = Fiddler.WebFormats.JSON.JsonDecode(mockbody)
+					if (typeof(j.JSONObject) == "object" && Object.prototype.toString.call(j.JSONObject).toLowerCase() == "[object hashtable]" && !j.JSONObject.length) {
+						if (j.JSONObject['mock']['delay'] == '2g') {
+							oSession["response-trickle-delay"] = "833"
+						}
+						else {
+							oSession["response-trickle-delay"] = j.JSONObject['mock']['delay']
+						}
+
+						if (j.JSONObject['mock']['responsecode'] == '200') {
+							delete j.JSONObject['mock']
+							if (api == whiteurl){
+								var mockbytes = Fiddler.WebFormats.JSON.JsonEncode(j.JSONObject['body'])
+								}
+							else{
+								var mockbytes = Fiddler.WebFormats.JSON.JsonEncode(j.JSONObject)
+								//mockbody = System.Text.Encoding.UTF8.GetBytes(mockbytes)
+								//oSession.RequestBody = mockbody;
+							}
+							oSession.utilSetResponseBody(mockbytes)
+							oSession["ui-color"] = "blue";
+							oSession["ui-backcolor"] = "yellow";
+
+						} else {
+							oSession.responseCode = int(j.JSONObject['mock']['responsecode'])
+							oSession["ui-color"] = "red";
+							oSession["ui-backcolor"] = "yellow";
+						}
 					}
 					else {
-						oSession["response-trickle-delay"] = j.JSONObject['mock']['delay']
+						oSession.utilSetResponseBody(mockbody)
+						oSession["ui-color"] = "";
+						oSession["ui-backcolor"] = "yellow";
 					}
+					//MessageBox.Show(System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes))
+					//MessageBox.Show(oSession["response-trickle-delay"])
+				}
+				catch (e) {//MessageBox.Show(e)
 
-					if (j.JSONObject['mock']['responsecode'] == '200') {
-						delete j.JSONObject['mock']
-						var mockbytes = Fiddler.WebFormats.JSON.JsonEncode(j.JSONObject)
-						//mockbody = System.Text.Encoding.UTF8.GetBytes(mockbytes)
-						//oSession.RequestBody = mockbody;
-						oSession.utilSetResponseBody(mockbytes)
-						oSession["ui-color"] = "blue";
-						oSession["ui-backcolor"] = "yellow";
-					} else {
-						oSession.responseCode = int(j.JSONObject['mock']['responsecode'])
-						oSession["ui-color"] = "red";
-						oSession["ui-backcolor"] = "yellow";
-					}
 				}
-				else {
-					oSession.utilSetResponseBody(mockbody)
-					oSession["ui-color"] = "";
-					oSession["ui-backcolor"] = "yellow";
-				}
-				//MessageBox.Show(System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes))
-				//MessageBox.Show(oSession["response-trickle-delay"])
-			}
-			catch (e) {//MessageBox.Show(e)}
 			}
 		}
 	}
-}
 
 	// *****************
 	//

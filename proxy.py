@@ -25,19 +25,21 @@ def send(s,str):
 def cmd():
     usage = "python proxy.py -k key=value"
     cmd = OptionParser(usage)
-    cmd.add_option("-s", "--sleep", type="int", dest="sleep")
-    cmd.add_option("-d", "--delay", type="string", dest="delay")
-    cmd.add_option("-b", "--body", type="string", dest="body")
-    cmd.add_option("-c", "--code", type="int", dest="code")
-    cmd.add_option("-r", "--clear", type="int", dest="clear", default=0)
-    cmd.add_option("-k", "--key", type="string", dest="key", )
-    cmd.add_option("-a", "--api", type="string", dest="api", )
+    cmd.add_option("-s", "--sleep", type="int", dest="sleep",help=" python proxy -s 5 ,sleep 5秒后返回json" )
+    cmd.add_option("-d", "--delay", type="string", dest="delay",help=" python proxy -d 150 ,延迟150毫秒后返回json" )
+    cmd.add_option("-b", "--body", type="string", dest="body",help=" python proxy -b {} ,返回的body={}")
+    cmd.add_option("-c", "--code", type="int", dest="code",help=" python proxy -c 404 ,返回的response code=404")
+    cmd.add_option("-r", "--clear", type="int", dest="clear", default=0,help=" python proxy -r 1 ,清空内部state")
+    cmd.add_option("-k", "--key", type="string", dest="key",help=" python proxy -k errno=1 ,返回json中errno字段=1" )
+    cmd.add_option("-a", "--api", type="string", dest="api",help=" python proxy -a /api/user/get ,将/api/user/get接口加入待劫持api队列中"  )
+    cmd.add_option("-p", "--pause",type = "int",dest="pause",help=" python proxy -p 1/0 ,1暂停轮询机制 ,0启用轮询" )
     (options, args) = cmd.parse_args()
     cmd={}
-    list=['sleep','delay','body','code','clear','key','api']
+    list=['sleep','delay','body','code','clear','key','api','pause']
     for k in list:
-        v=eval('options.'+k)
-        if v: cmd[k]=v
+        v = eval('options.'+k)
+        if k=='pause' and (v==0 or v==1) :cmd[k] = v
+        elif v: cmd[k] = v
     return cmd
 
 if __name__ == "__main__":
