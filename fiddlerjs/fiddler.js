@@ -72,7 +72,8 @@ class Handlers
 		if (m_Hide304s && oSession.responseCode == 304) {
 			oSession["ui-hide"] = "true";
 		}
-		var hostmatch = oSession.hostname.match(filterUrl)
+		//var hostmatch = oSession.hostname.match(filterUrl)
+		var hostmatch =oSession.HostnameIs(filterUrl)
 		if (isautocap && hostmatch && oSession.responseCode == 200) {
 			oSession.utilDecodeResponse()
 			var body = System.Text.Encoding.UTF8.GetString(oSession.responseBodyBytes)
